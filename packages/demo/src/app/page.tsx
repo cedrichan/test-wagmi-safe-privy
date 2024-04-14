@@ -2,9 +2,9 @@
 
 import { ActiveAddress } from "@/components/ActiveAddress";
 import {
-  storageABI,
-  useStorageRetrieve,
-  useStorageStore,
+  storageAbi,
+  useReadStorageRetrieve,
+  useWriteStorageStore
 } from "@/generated/wagmi";
 import { safeDecodeLogs } from "@/utils/safeDecodeLogs";
 import {
@@ -17,22 +17,19 @@ import {
 } from "@chakra-ui/react";
 import { useSafeWaitForTransaction } from "@moleculexyz/wagmi-safe-wait-for-tx";
 import { useCallback, useEffect, useState } from "react";
-import { useAccount, useNetwork } from "wagmi";
-import { WriteContractResult } from "wagmi/actions";
+import { WriteContractReturnType } from "viem";
+import { useAccount } from "wagmi";
 
 export default function Home() {
-  //const { ready, wallet: activeWallet, setActiveWallet } = usePrivyWagmi();
-  const { address } = useAccount();
-
-  const { chain } = useNetwork();
+  const { address, chainId } = useAccount();
 
   const toast = useToast();
-  const [newVal, setNewVal] = useState<number>();
+  const [newVal, setNewVal] = useState<number>(0);
   const [curVal, setCurVal] = useState<number>();
-  const [tx, setTx] = useState<WriteContractResult>();
+  const [tx, setTx] = useState<WriteContractReturnType>();
 
-  const { data, error, status } = useStorageRetrieve();
-  const { writeAsync } = useStorageStore();
+  const { data, error, status } = useReadStorageRetrieve();
+  const { writeContractAsync } = useWriteStorageStore();
   const { data: receipt, isError, isLoading } = useSafeWaitForTransaction(tx);
 
   useEffect(() => {
@@ -44,7 +41,7 @@ export default function Home() {
   useEffect(() => {
     if (!receipt) return;
 
-    const numberChangedEvent = safeDecodeLogs(receipt, storageABI).find(
+    const numberChangedEvent = safeDecodeLogs(receipt, storageAbi).find(
       (e) => e?.eventName == "NumberChanged"
     );
     if (!numberChangedEvent) {
@@ -62,14 +59,14 @@ export default function Home() {
   }, [receipt, toast]);
 
   const onSubmit = useCallback(async () => {
-    if (!address || !chain || newVal === undefined) return;
+    if (!address || !chainId || newVal === undefined) return;
 
     setTx(
-      await writeAsync({
+      await writeContractAsync({
         args: [BigInt(newVal || 0n)],
       })
     );
-  }, [address, chain, newVal, writeAsync]);
+  }, [address, chainId, newVal, writeContractAsync]);
 
   return (
     <main>
@@ -89,7 +86,7 @@ export default function Home() {
               name="newVal"
               type="number"
               value={newVal}
-              onChange={(v) => setNewVal(v.target.valueAsNumber)}
+              onChange={(v: any) => { v.preventDefault(); setNewVal(v.target.valueAsNumber) }}
             />
           </FormControl>
           <Button colorScheme="cyan" type="submit">
@@ -99,7 +96,7 @@ export default function Home() {
         {tx && (
           <Flex direction="column" my={6}>
             <Text>
-              Transaction: <b>{tx.hash}</b>
+              Transaction: <b>{tx}</b>
             </Text>
             {receipt && (
               <Text>

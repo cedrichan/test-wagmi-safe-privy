@@ -20,12 +20,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          <Container maxW="container.lg" minH="100vh" bg="gray.100">
-            <Flex w="full" align="center" justify="space-between">
+          <Container maxW="container.lg" minH="100vh">
+            <Flex w="full" align="center" justify="space-between" gap={2}>
               <Text fontWeight="bold">Safetest</Text>
-              <Flex>
-                <LoginButton />
-              </Flex>
+                <LoginButton />              
             </Flex>
             {children}
           </Container>

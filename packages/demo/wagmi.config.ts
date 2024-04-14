@@ -3,7 +3,7 @@ import { actions, react } from "@wagmi/cli/plugins";
 //import { erc20ABI } from "wagmi";
 import { Abi } from "viem";
 import StorageABI from "./src/abis/Storage.json";
-import { goerli } from "viem/chains";
+import { baseSepolia, sepolia } from "viem/chains";
 
 export default defineConfig({
   out: "src/generated/wagmi.ts",
@@ -12,23 +12,12 @@ export default defineConfig({
       name: "Storage",
       abi: StorageABI as Abi,
       address: {
-        [goerli.id]: "0xd7f65e5e9d30E02553Fb03AD74B26577FD5bA22f",
+        [sepolia.id]: "0x2F97B5f616495C2e923F39a46648eb783C053Ad7",
+        [baseSepolia.id]: "0x0F224D7f8532D6de53C7ef1DC93B3AE9DeC74f83",
       },
     },
   ],
   plugins: [
-    // etherscan({
-    //   apiKey: process.env.ETHERSCAN_API_KEY!,
-    //   chainId: goerli.id,
-    //   contracts: [
-    //     {
-    //       name: "Storage",
-    //       address: {
-    //         [goerli.id]: "0xd7f65e5e9d30E02553Fb03AD74B26577FD5bA22f",
-    //       },
-    //     },
-    //   ],
-    // }),
     react(),
     actions(),
   ],

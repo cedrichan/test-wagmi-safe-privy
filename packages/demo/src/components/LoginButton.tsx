@@ -2,58 +2,69 @@
 import { Button, Flex, Text, VStack } from "@chakra-ui/react";
 import { useIsContractWallet } from "@moleculexyz/wagmi-safe-wait-for-tx";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { usePrivyWagmi } from "@privy-io/wagmi-connector";
+import { useSetActiveWallet } from "@privy-io/wagmi";
 import { useCallback } from "react";
-import { Address, useDisconnect } from "wagmi";
+import { Address } from "viem";
+import { useAccount, useDisconnect } from "wagmi";
 
 export const LoginButton = () => {
-  const { wallet: activeWallet, ready, setActiveWallet } = usePrivyWagmi();
-  const { connectWallet, authenticated, logout, login } = usePrivy();
+  const {setActiveWallet} = useSetActiveWallet()
+  
+  const {address, chain, chainId} = useAccount()
+    const { logout, login, user, connectWallet } = usePrivy();
   const isContractWallet = useIsContractWallet(
-    activeWallet?.address as Address | undefined
+    address as Address | undefined
   );
 
   const { disconnect } = useDisconnect();
 
-  const { wallets } = useWallets();
+  const { wallets, ready } = useWallets();
 
   const unlink = useCallback(() => {
     disconnect();
     try {
       logout();
-      if (activeWallet) activeWallet.disconnect();
     } catch (e: any) {
       console.warn("cant disconnect wallet");
     }
-  }, [activeWallet, disconnect, logout]);
+  }, [disconnect, logout]);
 
   if (wallets && wallets.length > 0) {
     return (
-      <Flex>
+      <Flex gap={2} align="center">
         <VStack>
           {wallets.map((wallet) => (
             <Flex key={wallet.address}>
-              {wallet.address === activeWallet?.address ? (
+              {wallet.address === address ? (
                 <Text onClick={() => setActiveWallet(wallet)}>
-                  {wallet.address} {isContractWallet ? "AA" : "EOA"}
+                  {wallet.address} {isContractWallet.isContract ? "AA" : "EOA"}
+                  {isContractWallet.isSafe && "SAFE"}
                 </Text>
               ) : (
-                <Button onClick={() => setActiveWallet(wallet)}>
+                <Button onClick={() => setActiveWallet(wallet)} size="sm">
                   Activate {wallet.address}
                 </Button>
               )}
             </Flex>
           ))}
+          <Flex>Chain: {chainId} {chain?.name}</Flex>
         </VStack>
         <Button onClick={unlink}>Logout</Button>
       </Flex>
     );
   }
 
+  if (user) {
+    return <Button onClick={() => logout()} colorScheme="yellow">
+      Log out
+    </Button>
+  }
   //use "login" for the full privy flow
   return (
+    <>
     <Button onClick={() => login()} colorScheme="orange">
       Login
     </Button>
+    </>
   );
 };
