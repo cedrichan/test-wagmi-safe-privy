@@ -6,11 +6,13 @@ import {
   arbitrum,
   base,
   baseGoerli,
+  baseSepolia,
   gnosis,
   goerli,
   mainnet,
   optimism,
   polygon,
+  sepolia,
 } from "viem/chains";
 import { delay } from "./delay.js";
 
@@ -40,6 +42,8 @@ const apiNetworkName = (chainId: number): string => {
       return "gnosis-chain";
     case baseGoerli.id:
       return "base-testnet";
+    case baseSepolia.id:
+      return "base-sepolia";
     default:
       return (
         {
@@ -49,6 +53,7 @@ const apiNetworkName = (chainId: number): string => {
           [base.id]: "base",
           [arbitrum.id]: "arbitrum",
           [goerli.id]: "goerli",
+          [sepolia.id]: "sepolia",
         }[chainId] || "mainnet"
       );
   }
@@ -56,7 +61,7 @@ const apiNetworkName = (chainId: number): string => {
 
 /**
  * @see https://safe-transaction-mainnet.safe.global/
- * @see https://safe-transaction-goerli.safe.global/api/v1/multisig-transactions/0xc02ba93a6f025e3e78dfceb5c9d4d681aa9aafc780ba6243d3d70ac9fdf48288/
+ * @see https://safe-transaction-base-sepolia.safe.global/api/v1/multisig-transactions/0xc02ba93a6f025e3e78dfceb5c9d4d681aa9aafc780ba6243d3d70ac9fdf48288/
  *
  * @param network network id
  * @param safeTxHash the "internal" safe tx hash
@@ -77,23 +82,28 @@ export const resolveSafeTx = async (
   const endpoint = `https://safe-transaction-${networkName}.safe.global`;
   const url = `${endpoint}/api/v1/multisig-transactions/${safeTxHash}`;
 
-  const response = <TxServiceApiTransactionResponse>(
-    await (await fetch(url)).json()
-  );
+  const response = (await fetch(url));
+
+  const responseJson = <TxServiceApiTransactionResponse>(await response.json());
 
   console.debug(
     `[${attempt}] looking up [${safeTxHash}] on [${networkName}]`,
     response
   );
-  if (response.isSuccessful === null) {
+  if (response.status == 404) {
+    console.warn(`didnt find safe tx [${safeTxHash}], assuming it's already the real one`)
+    return safeTxHash
+  }
+
+  if (responseJson.isSuccessful === null) {
     await delay(1000 * attempt ** 1.75); //using a polynomial backoff, 2 grows too fast for my taste
     return resolveSafeTx(networkId, safeTxHash, attempt + 1, maxAttempts);
   }
 
-  if (!response.isSuccessful) {
+  if (!responseJson.isSuccessful) {
     return undefined;
   }
-  return response.transactionHash;
+  return responseJson.transactionHash;
 };
 
 export const isContractWallet = async (

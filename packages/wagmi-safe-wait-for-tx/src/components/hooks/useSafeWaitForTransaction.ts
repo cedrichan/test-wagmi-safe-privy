@@ -1,23 +1,26 @@
-import { useIsContractWallet } from "./useIsContractWallet";
-import { resolveSafeTx } from "../../utils/safe";
 import { useEffect, useState } from "react";
-import { useAccount, useNetwork, useWaitForTransaction } from "wagmi";
-import { WriteContractResult } from "wagmi/actions";
+import { WriteContractReturnType } from "viem";
+import { useAccount, useWaitForTransactionReceipt } from "wagmi";
+import { resolveSafeTx } from "../../utils/safe";
+import { useIsContractWallet } from "./useIsContractWallet";
+
 
 export const useSafeWaitForTransaction = (
-  writeResult: WriteContractResult | undefined
+  writeResult: WriteContractReturnType | undefined
 ) => {
-  const { address } = useAccount();
+  const { address, chain } = useAccount();
 
   const { isSafe: isSafeWallet } = useIsContractWallet(address);
-  const { chain } = useNetwork();
 
   const [safeResult, setSafeResult] = useState<
-    WriteContractResult | undefined
+  WriteContractReturnType | undefined
   >();
 
-  const waitResponse = useWaitForTransaction(safeResult);
-
+  const waitResponse = useWaitForTransactionReceipt({
+    chainId: chain?.id,
+    hash: safeResult,
+  });
+  
   useEffect(() => {
     if (!writeResult || !chain || isSafeWallet === undefined) {
       return;
@@ -25,9 +28,9 @@ export const useSafeWaitForTransaction = (
 
     if (isSafeWallet) {
       //try to resolve the underlying transaction
-      resolveSafeTx(chain.id, writeResult.hash).then((resolvedTx) => {
+      resolveSafeTx(chain.id, writeResult).then((resolvedTx) => {
         if (!resolvedTx) throw new Error("couldnt resolve safe tx");
-        setSafeResult({ hash: resolvedTx });
+        setSafeResult(resolvedTx);
       });
     } else {
       setSafeResult(writeResult);
