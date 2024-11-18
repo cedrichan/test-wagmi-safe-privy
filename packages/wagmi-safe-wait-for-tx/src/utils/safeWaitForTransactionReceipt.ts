@@ -23,15 +23,17 @@ export const safeWaitForTransactionReceipt = async (
     throw new Error("no chain on public client");
   }
 
-  const { isSafe } = await isContractWallet(publicClient, params.address);
+  const { address, ...waitParams } = params;
+
+  const { isSafe } = await isContractWallet(publicClient, address);
 
   if (isSafe) {
     //try to resolve the underlying transaction
     const resolvedTx = await resolveSafeTx(publicClient.chain.id, params.hash);
     if (!resolvedTx) throw new Error("couldnt resolve safe tx");
 
-    return publicClient.waitForTransactionReceipt({ hash: resolvedTx });
+    return publicClient.waitForTransactionReceipt({ ...waitParams, hash: resolvedTx });
   } else {
-    return publicClient.waitForTransactionReceipt(params);
+    return publicClient.waitForTransactionReceipt(waitParams);
   }
 };
